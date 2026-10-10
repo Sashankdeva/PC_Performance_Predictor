@@ -1,0 +1,81 @@
+{
+  "check_interval_seconds": 3,
+  "min_seconds_between_switches": 15,
+  "min_minutes_between_gpu_switches": 3,
+  "respect_manual_change_minutes": 15,
+  "notify_on_switch": true,
+  "default_mode": "performance",
+  "default_gpu": "eco",
+  "power_plans": {
+    "silent": "Silent",
+    "performance": "Performance",
+    "turbo": "Turbo"
+  },
+  "gpu_safe_to_cut_apps": [
+    "explorer", "dwm", "ShellHost", "SearchHost", "StartMenuExperienceHost", "TextInputHost",
+    "LockApp", "ApplicationFrameHost", "CrossDeviceResume", "NVIDIA Overlay", "nvcontainer",
+    "NVIDIA app", "RadeonSoftware", "AMDRSSrcExt", "ArmouryCrate", "AsusMyASUS",
+    "msedge", "msedgewebview2", "chrome", "Discord", "WhatsApp.Root", "claude", "fdm"
+  ],
+  "reminders": [
+    {
+      "at": "15:45",
+      "days": ["mon", "tue", "wed", "thu", "fri"],
+      "title": "College ends at 4 PM",
+      "message": "Evening mode starts at 16:00. Plug in at home for Turbo + NVIDIA GPU."
+    }
+  ],
+  "rules": [
+    {
+      "name": "Plugged in - full performance",
+      "mode": "turbo",
+      "gpu": "ask",
+      "plugged_in": true
+    },
+    {
+      "name": "Battery low",
+      "mode": "silent",
+      "gpu": "eco",
+      "battery_below": 20
+    },
+    {
+      "name": "Heavy CPU work",
+      "mode": "turbo",
+      "gpu": "standard",
+      "cpu_above": 70,
+      "for_seconds": 30
+    },
+    {
+      "name": "Heavy graphics (integrated GPU maxed)",
+      "mode": "turbo",
+      "gpu": "standard",
+      "gpu_above": 80,
+      "for_seconds": 20
+    },
+    {
+      "name": "Away from keyboard",
+      "mode": "silent",
+      "gpu": "eco",
+      "idle_minutes": 5
+    },
+    {
+      "name": "Morning",
+      "mode": "performance",
+      "gpu": "eco",
+      "between": ["06:00", "12:00"]
+    },
+    {
+      "name": "College hours",
+      "mode": "silent",
+      "gpu": "eco",
+      "between": ["12:00", "16:00"],
+      "days": ["mon", "tue", "wed", "thu", "fri"]
+    },
+    {
+      "name": "Evening",
+      "mode": "performance",
+      "gpu": "eco",
+      "between": ["16:00", "06:00"]
+    }
+  ]
+}

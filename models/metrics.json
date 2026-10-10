@@ -1,0 +1,184 @@
+{
+  "best_model": "Linear Regression",
+  "learning_type": "Supervised learning (regression)",
+  "selection_rule": "One-standard-error rule: simplest model within 50.33 CV RMSE (best SVR 47.32)",
+  "tied_models": [
+    "SVR",
+    "Linear Regression",
+    "Ridge Regression"
+  ],
+  "test_metrics": {
+    "MAE": 33.84147341623704,
+    "MSE": 1946.4756182926772,
+    "RMSE": 44.118880519485955,
+    "R2": 0.9287335629469428
+  },
+  "comparison": [
+    {
+      "Model": "SVR",
+      "Family": "Support Vector Machine",
+      "Unit": "Unit III",
+      "CV_RMSE": 47.3201,
+      "CV_RMSE_Std": 6.7275,
+      "Train_R2": 0.9186,
+      "Test_MAE": 33.3328,
+      "Test_MSE": 1946.9271,
+      "Test_RMSE": 44.124,
+      "Test_R2": 0.9287
+    },
+    {
+      "Model": "Linear Regression",
+      "Family": "Linear model",
+      "Unit": "Unit III",
+      "CV_RMSE": 47.884,
+      "CV_RMSE_Std": 6.3247,
+      "Train_R2": 0.9195,
+      "Test_MAE": 33.8415,
+      "Test_MSE": 1946.4756,
+      "Test_RMSE": 44.1189,
+      "Test_R2": 0.9287
+    },
+    {
+      "Model": "Ridge Regression",
+      "Family": "Linear model + L2 regularization",
+      "Unit": "Unit III / V",
+      "CV_RMSE": 47.8846,
+      "CV_RMSE_Std": 6.3199,
+      "Train_R2": 0.9195,
+      "Test_MAE": 33.845,
+      "Test_MSE": 1946.6933,
+      "Test_RMSE": 44.1213,
+      "Test_R2": 0.9287
+    },
+    {
+      "Model": "Gradient Boosting",
+      "Family": "Ensemble: boosting",
+      "Unit": "Unit V",
+      "CV_RMSE": 55.6689,
+      "CV_RMSE_Std": 4.5227,
+      "Train_R2": 0.9578,
+      "Test_MAE": 45.2877,
+      "Test_MSE": 3512.5495,
+      "Test_RMSE": 59.2668,
+      "Test_R2": 0.8714
+    },
+    {
+      "Model": "Bagging",
+      "Family": "Ensemble: bagging",
+      "Unit": "Unit V",
+      "CV_RMSE": 69.1214,
+      "CV_RMSE_Std": 4.6467,
+      "Train_R2": 0.9744,
+      "Test_MAE": 53.2891,
+      "Test_MSE": 4856.0993,
+      "Test_RMSE": 69.6857,
+      "Test_R2": 0.8222
+    },
+    {
+      "Model": "Random Forest",
+      "Family": "Ensemble: bagging",
+      "Unit": "Unit V",
+      "CV_RMSE": 69.2237,
+      "CV_RMSE_Std": 4.6966,
+      "Train_R2": 0.975,
+      "Test_MAE": 53.5483,
+      "Test_MSE": 4936.4931,
+      "Test_RMSE": 70.2602,
+      "Test_R2": 0.8193
+    },
+    {
+      "Model": "AdaBoost",
+      "Family": "Ensemble: boosting",
+      "Unit": "Unit V",
+      "CV_RMSE": 76.0751,
+      "CV_RMSE_Std": 5.5247,
+      "Train_R2": 0.9036,
+      "Test_MAE": 62.4836,
+      "Test_MSE": 6467.0123,
+      "Test_RMSE": 80.4177,
+      "Test_R2": 0.7632
+    },
+    {
+      "Model": "KNN",
+      "Family": "Instance-based learning",
+      "Unit": "Unit II",
+      "CV_RMSE": 82.7136,
+      "CV_RMSE_Std": 7.3882,
+      "Train_R2": 1.0,
+      "Test_MAE": 57.306,
+      "Test_MSE": 5508.7088,
+      "Test_RMSE": 74.2207,
+      "Test_R2": 0.7983
+    },
+    {
+      "Model": "Decision Tree",
+      "Family": "Tree",
+      "Unit": "Unit V (base learner)",
+      "CV_RMSE": 98.4307,
+      "CV_RMSE_Std": 3.0696,
+      "Train_R2": 0.8734,
+      "Test_MAE": 77.8583,
+      "Test_MSE": 8964.5025,
+      "Test_RMSE": 94.6811,
+      "Test_R2": 0.6718
+    }
+  ],
+  "feature_importance": {
+    "OS": 0.0006,
+    "Storage_GB": 0.0185,
+    "Temperature_C": 0.0326,
+    "Age_Years": 0.1225,
+    "Clock_GHz": 0.1699,
+    "GPU_Level": 0.3672,
+    "CPU_Cores": 0.5131,
+    "RAM_GB": 0.5345
+  },
+  "ridge_alpha_cv_rmse": {
+    "0.01": 47.88410048992124,
+    "0.1": 47.88461329864964,
+    "1": 47.8918920633222,
+    "10": 48.16569641501817,
+    "100": 60.69456937860116,
+    "1000": 128.1134095726804,
+    "10000": 160.30754012412453
+  },
+  "best_params": {
+    "Linear Regression": {},
+    "Ridge Regression": {
+      "model__alpha": 0.1
+    },
+    "KNN": {
+      "model__metric": "euclidean",
+      "model__n_neighbors": 7,
+      "model__weights": "distance"
+    },
+    "SVR": {
+      "model__C": 100,
+      "model__epsilon": 10,
+      "model__kernel": "linear"
+    },
+    "Decision Tree": {
+      "model__max_depth": 8,
+      "model__min_samples_leaf": 5
+    },
+    "Random Forest": {
+      "model__max_depth": null,
+      "model__min_samples_leaf": 1,
+      "model__n_estimators": 300
+    },
+    "Gradient Boosting": {
+      "model__learning_rate": 0.1,
+      "model__max_depth": 2,
+      "model__n_estimators": 200
+    },
+    "Bagging": {
+      "model__max_samples": 1.0
+    },
+    "AdaBoost": {
+      "model__learning_rate": 0.5,
+      "model__n_estimators": 300
+    }
+  },
+  "train_rows": 402,
+  "test_rows": 101
+}
