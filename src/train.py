@@ -106,6 +106,28 @@ def main():
         X, y, test_size=0.2, random_state=SEED)
     cv = KFold(n_splits=5, shuffle=True, random_state=SEED)
 
+    sep = "=" * 70
+    print(sep)
+    print("  PC PERFORMANCE PREDICTOR -- MODEL TRAINING & EVALUATION")
+    print(sep)
+
+    # Dataset summary
+    print(f"\n{'-' * 40}")
+    print("  DATASET SUMMARY")
+    print(f"{'-' * 40}")
+    print(f"  Total samples    : {len(df)}")
+    print(f"  Training samples : {len(X_train)} (80%)")
+    print(f"  Testing samples  : {len(X_test)} (20%)")
+    print(f"  Features         : {len(FEATURES)} ({', '.join(FEATURES)})")
+    print(f"  Target           : {TARGET}")
+    print(f"  Target range     : {y.min():.2f} - {y.max():.2f}")
+    print(f"  Cross-validation : 5-Fold (shuffle=True, seed={SEED})")
+
+    # Train all 9 models
+    print(f"\n{'-' * 40}")
+    print("  TRAINING 9 MODELS...")
+    print(f"{'-' * 40}")
+
     results = []
     fitted = {}
     for name, (model, grid) in CANDIDATES.items():
@@ -117,42 +139,97 @@ def main():
         results.append({"Model": name, "Family": family, "Unit": unit,
                         "CV_RMSE": -search.best_score_,
                         "CV_RMSE_Std": search.cv_results_["std_test_score"][search.best_index_],
-                        # Train vs test R2 shows bias (both low) and variance (big gap)
                         "Train_R2": r2_score(y_train, search.predict(X_train)),
                         **{f"Test_{k}": v for k, v in test_scores.items()},
                         "Best_Params": search.best_params_})
         fitted[name] = search.best_estimator_
+        print(f"  [OK] {name:<22s} CV RMSE = {-search.best_score_:7.2f}   Test R2 = {test_scores['R2']:.4f}")
 
     table = pd.DataFrame(results).sort_values("CV_RMSE").reset_index(drop=True)
-    print(table.drop(columns=["Best_Params", "Family", "Unit"]).round(3).to_string(index=False))
 
-    # Model selection uses CV scores only, so the test set stays unbiased.
-    # One-standard-error rule: among models whose CV RMSE is within one standard
-    # error of the best, pick the simplest (Occam's razor).
+    # Full comparison table
+    print(f"\n{'-' * 40}")
+    print("  MODEL COMPARISON (sorted by CV RMSE)")
+    print(f"{'-' * 40}\n")
+    display_cols = ["Model", "Family", "CV_RMSE", "CV_RMSE_Std", "Train_R2",
+                    "Test_MAE", "Test_MSE", "Test_RMSE", "Test_R2"]
+    print(table[display_cols].round(4).to_string(index=False))
+
+    # Model selection logic
     top = table.loc[0]
     threshold = top["CV_RMSE"] + top["CV_RMSE_Std"] / np.sqrt(cv.get_n_splits())
     tied = table[table["CV_RMSE"] <= threshold]["Model"].tolist()
     best_name = min(tied, key=SIMPLICITY_ORDER.index)
-    print(f"\nLowest CV RMSE: {top['Model']} ({top['CV_RMSE']:.2f}); within one standard error "
-          f"(<= {threshold:.2f}): {', '.join(tied)}")
+
+    print(f"\n{'-' * 40}")
+    print("  MODEL SELECTION (One-Standard-Error Rule)")
+    print(f"{'-' * 40}")
+    print(f"  Lowest CV RMSE         : {top['Model']} ({top['CV_RMSE']:.2f})")
+    print(f"  Standard Error         : {top['CV_RMSE_Std'] / np.sqrt(cv.get_n_splits()):.2f}")
+    print(f"  Threshold (best + SE)  : {threshold:.2f}")
+    print(f"  Models within threshold: {', '.join(tied)}")
+    print(f"  Simplest model chosen  : {best_name}")
+
     best_model = fitted[best_name]
     best_row = table.set_index("Model").loc[best_name]
-    print(f"\nBest model: {best_name}  (test R2 = {best_row['Test_R2']:.3f}, "
-          f"RMSE = {best_row['Test_RMSE']:.2f})")
+
+    # Selected model evaluation metrics
+    print(f"\n{'-' * 40}")
+    print(f"  SELECTED MODEL: {best_name}")
+    print(f"{'-' * 40}")
+    print(f"  Train R2     : {best_row['Train_R2']:.4f}")
+    print(f"  Test MAE     : {best_row['Test_MAE']:.4f}")
+    print(f"  Test MSE     : {best_row['Test_MSE']:.4f}")
+    print(f"  Test RMSE    : {best_row['Test_RMSE']:.4f}")
+    print(f"  Test R2      : {best_row['Test_R2']:.4f}")
+
+    # Bias-Variance analysis
+    print(f"\n{'-' * 40}")
+    print("  BIAS-VARIANCE ANALYSIS (Train R2 vs Test R2)")
+    print(f"{'-' * 40}")
+    for _, row in table.iterrows():
+        gap = row["Train_R2"] - row["Test_R2"]
+        flag = " <-- OVERFITS" if gap > 0.10 else ""
+        print(f"  {row['Model']:<22s}  Train R2={row['Train_R2']:.3f}  "
+              f"Test R2={row['Test_R2']:.3f}  Gap={gap:+.3f}{flag}")
 
     # Refit the chosen configuration on all clean data for the app
     final_model = build_pipeline(best_model.named_steps["model"]).fit(X, y)
     MODEL_PATH.parent.mkdir(exist_ok=True)
     joblib.dump(final_model, MODEL_PATH)
 
+    # Feature importance
     importance = permutation_importance(best_model, X_test, y_test, n_repeats=20,
                                         random_state=SEED, scoring="r2")
     importance = pd.Series(importance.importances_mean, index=FEATURES).sort_values()
 
-    # Regularization: how the L2 penalty strength changes Ridge's CV error
+    print(f"\n{'-' * 40}")
+    print("  FEATURE IMPORTANCE (Permutation, drop in R2)")
+    print(f"{'-' * 40}")
+    for feat in importance.sort_values(ascending=False).index:
+        bar = "#" * int(importance[feat] * 40)
+        print(f"  {feat:<16s} {importance[feat]:+.4f}  {bar}")
+
+    # Ridge alpha sweep
     ridge_sweep = {str(a): float(-cross_val_score(build_pipeline(Ridge(alpha=a)), X_train, y_train,
                                                   cv=cv, scoring="neg_root_mean_squared_error").mean())
                    for a in RIDGE_ALPHAS}
+
+    print(f"\n{'-' * 40}")
+    print("  RIDGE REGULARIZATION SWEEP (alpha vs CV RMSE)")
+    print(f"{'-' * 40}")
+    for alpha, rmse in ridge_sweep.items():
+        indicator = " <-- underfitting" if rmse > 60 else ""
+        print(f"  alpha = {alpha:>8s}  -->  CV RMSE = {rmse:7.2f}{indicator}")
+
+    # Best hyperparameters per model
+    print(f"\n{'-' * 40}")
+    print("  BEST HYPERPARAMETERS PER MODEL")
+    print(f"{'-' * 40}")
+    for r in results:
+        params = r["Best_Params"]
+        params_str = ", ".join(f"{k.replace('model__', '')}={v}" for k, v in params.items()) if params else "(none)"
+        print(f"  {r['Model']:<22s} {params_str}")
 
     metrics = {
         "best_model": best_name,
@@ -171,7 +248,16 @@ def main():
     METRICS_PATH.write_text(json.dumps(metrics, indent=2, default=str))
 
     save_figures(table, best_name, y_test, best_model.predict(X_test), importance)
-    print(f"Saved model to {MODEL_PATH}")
+
+    print(f"\n{'-' * 40}")
+    print("  OUTPUT FILES")
+    print(f"{'-' * 40}")
+    print(f"  Model saved    : {MODEL_PATH}")
+    print(f"  Metrics saved  : {METRICS_PATH}")
+    print(f"  Figures saved  : {FIG_DIR}")
+    print(f"\n{sep}")
+    print(f"  DONE -- Final model: {best_name} (Test R2 = {best_row['Test_R2']:.4f}, RMSE = {best_row['Test_RMSE']:.2f})")
+    print(sep)
 
 
 def save_figures(table, best_name, y_test, y_pred, importance):

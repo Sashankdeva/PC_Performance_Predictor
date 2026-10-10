@@ -1,16 +1,5 @@
-"""Clean the raw PC performance dataset into a machine-learning-ready CSV.
-
-Steps (as described in Review-1):
-  1. Fix data types (e.g. RAM_GB values like " 32GB")
-  2. Standardize OS labels to Windows / Linux
-  3. Remove exact duplicates (ignoring Record_ID)
-  4. Filter impossible / out-of-range values
-  5. Impute missing numbers with the median and OS with the mode
-  6. Recompute Performance_Class from Performance_Score
-  7. Round integer-valued columns and remove duplicates again
-"""
 from pathlib import Path
-
+# pyrefly: ignore [missing-import]
 import numpy as np
 import pandas as pd
 
@@ -22,7 +11,6 @@ NUMERIC_COLS = ["RAM_GB", "CPU_Cores", "GPU_Level", "Storage_GB",
                 "Clock_GHz", "Age_Years", "Temperature_C", "Performance_Score"]
 INTEGER_COLS = ["RAM_GB", "CPU_Cores", "GPU_Level", "Storage_GB"]
 
-# Valid domain limits (inclusive)
 VALID_RANGES = {
     "RAM_GB": (4, 64),
     "CPU_Cores": (2, 16),
@@ -34,18 +22,17 @@ VALID_RANGES = {
     "Performance_Score": (0, 1000),
 }
 
+# Map all OS spelling variations to two standard categories
 OS_MAP = {
     "windows": "Windows", "windows 10": "Windows", "win10": "Windows",
     "linux": "Linux", "ubuntu": "Linux",
 }
 
-# Score thresholds for each class: [lower, upper)
 CLASS_BINS = [-np.inf, 400, 650, 850, np.inf]
 CLASS_LABELS = ["Low", "Medium", "High", "Very High"]
 
 
 def score_to_class(score):
-    """Map a performance score (scalar or Series) to its performance class."""
     return pd.cut(np.atleast_1d(score), bins=CLASS_BINS, labels=CLASS_LABELS,
                   right=False).astype(str)
 
@@ -53,34 +40,34 @@ def score_to_class(score):
 def clean(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
 
-    # 1. Data types: strip "GB" suffix / whitespace and coerce to numbers
+    # Step 1 — Fix data types: strip "GB" suffix and whitespace, coerce to numeric
     for col in NUMERIC_COLS:
         df[col] = pd.to_numeric(
             df[col].astype(str).str.replace("GB", "", case=False).str.strip(),
             errors="coerce")
 
-    # 2. Standardize OS labels
+    # Step 2 — Standardize OS labels (11 variations → 2 categories)
     df["OS"] = df["OS"].str.strip().str.lower().map(OS_MAP)
 
-    # 3. Remove exact duplicates, ignoring Record_ID
+    # Step 3 — Remove exact duplicate rows (ignoring Record_ID)
     feature_cols = [c for c in df.columns if c != "Record_ID"]
     df = df.drop_duplicates(subset=feature_cols)
 
-    # 4. Drop rows with impossible values (missing values are kept for imputation)
+    # Step 4 — Drop rows with values outside valid engineering ranges
     valid = pd.Series(True, index=df.index)
     for col, (lo, hi) in VALID_RANGES.items():
         valid &= df[col].isna() | df[col].between(lo, hi)
     df = df[valid]
 
-    # 5. Impute missing values
+    # Step 5 — Impute missing values: median for numbers, mode for OS
     for col in NUMERIC_COLS:
         df[col] = df[col].fillna(df[col].median())
     df["OS"] = df["OS"].fillna(df["OS"].mode()[0])
 
-    # 6. Recompute the class label from the cleaned score
+    # Step 6 — Recompute Performance_Class from the cleaned score
     df["Performance_Class"] = score_to_class(df["Performance_Score"])
 
-    # 7. Round integer columns and remove duplicates again
+    # Step 7 — Round integer columns and remove any new duplicates
     df[INTEGER_COLS] = df[INTEGER_COLS].round().astype(int)
     df = df.drop_duplicates(subset=feature_cols).reset_index(drop=True)
     df["Record_ID"] = np.arange(1, len(df) + 1)
